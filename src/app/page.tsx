@@ -63,15 +63,15 @@ export default function Home() {
     .sort((a, b) => b - a);
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="max-w-6xl mx-auto px-6">
       {/* Hero section */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-2">
         <img
           src="/vaill-logo.png"
           alt="VAILL - Vanderbilt AI Law Lab"
-          className="h-44 mx-auto mb-4"
+          className="h-80 mx-auto"
         />
-        <p className="text-gray-500">
+        <p className="text-gray-500 text-sm">
           {data.totalReports} reports · October 2023 – present
         </p>
       </div>

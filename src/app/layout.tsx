@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import PasswordGate from "@/components/PasswordGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,17 +28,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Main content */}
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <PasswordGate>
+          {/* Main content */}
+          <main className="min-h-screen">
+            {children}
+          </main>
 
-        {/* Footer */}
-        <footer className="border-t border-gray-200 mt-12">
-          <div className="max-w-6xl mx-auto px-6 py-6 text-center text-sm text-gray-400">
-            Vanderbilt AI Law Lab · Vanderbilt University Law School
-          </div>
-        </footer>
+          {/* Footer */}
+          <footer className="border-t border-gray-200 mt-12">
+            <div className="max-w-6xl mx-auto px-6 py-6 text-center text-sm text-gray-400">
+              Vanderbilt AI Law Lab · Vanderbilt University Law School
+            </div>
+          </footer>
+        </PasswordGate>
       </body>
     </html>
   );
