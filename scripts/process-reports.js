@@ -31,10 +31,11 @@ const MONTHS = {
   'december': 12, 'dec': 12
 };
 
-// Files to exclude (not actual reports)
+// Files to exclude (not actual reports or corrupted)
 const EXCLUDE_FILES = [
   'Email to Chris G re_ VAILL budget',
-  'DRAFT - VAILL Annual Report'
+  'DRAFT - VAILL Annual Report',
+  'FW_ VAILL - November 2023'  // Corrupted PDF portfolio
 ];
 
 /**
@@ -143,14 +144,129 @@ function generateTitle(dateInfo) {
 }
 
 /**
+ * Clean up HTML content for better readability
+ */
+function cleanupHtml(html) {
+  let cleaned = html;
+
+  // Remove <br /> tags that break up text awkwardly
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, ' ');
+
+  // Known section headers in VAILL reports
+  const sectionHeaders = [
+    'Curriculum',
+    'Events and Speaking Engagements',
+    'Events',
+    'Speaking Engagements',
+    'Projects',
+    'Meetings',
+    'Media/Articles',
+    'Media',
+    'Articles',
+    'Research',
+    'Other',
+    'Personnel',
+    'Budget',
+    'Goals',
+    'Highlights',
+    'Summary',
+    'Overview'
+  ];
+
+  // Convert <p><strong>Section Header</strong></p> to <h2>
+  for (const header of sectionHeaders) {
+    const patterns = [
+      new RegExp(`<p><strong>${header}:?</strong></p>`, 'gi'),
+      new RegExp(`<p><strong>${header}:?\\s*</strong></p>`, 'gi'),
+      new RegExp(`<p><strong>\\s*${header}:?\\s*</strong></p>`, 'gi'),
+    ];
+    for (const pattern of patterns) {
+      cleaned = cleaned.replace(pattern, `<h2>${header}</h2>`);
+    }
+  }
+
+  // Convert any remaining standalone bold paragraphs that look like headers
+  // (short, no period at end, all bold)
+  cleaned = cleaned.replace(
+    /<p><strong>([^<]{1,60})<\/strong><\/p>/gi,
+    (match, text) => {
+      const trimmed = text.trim();
+      // If it looks like a header (no period, not too long)
+      if (!trimmed.endsWith('.') && !trimmed.endsWith(',') && trimmed.length < 50) {
+        return `<h2>${trimmed}</h2>`;
+      }
+      return match;
+    }
+  );
+
+  // Remove empty paragraphs
+  cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
+  cleaned = cleaned.replace(/<p><strong>\s*<\/strong><\/p>/gi, '');
+
+  // Clean up multiple spaces
+  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+
+  // Clean up spaces before punctuation
+  cleaned = cleaned.replace(/\s+([.,;:!?])/g, '$1');
+
+  // Convert list items that are section headers into proper headers
+  // Pattern: <li>Section Name<ul> -> </ul><h2>Section Name</h2><ul>
+  const listSectionHeaders = [
+    'Course Preparation and Planning',
+    'Curriculum Development',
+    'Educational Initiatives',
+    'Collaborations and Partnerships',
+    'Internal Collaborations',
+    'External Collaborations',
+    'Outreach and Events',
+    'Meetings completed',
+    'Meetings',
+    'Media Coverage',
+    'Grants and Funding',
+    'Research Activities'
+  ];
+
+  for (const header of listSectionHeaders) {
+    // Match <li>Header<ul> or <li>Header:</li>
+    cleaned = cleaned.replace(
+      new RegExp(`<li>${header}:?<ul>`, 'gi'),
+      `</ul><h2>${header}</h2><ul>`
+    );
+    cleaned = cleaned.replace(
+      new RegExp(`<li>${header}:?</li>`, 'gi'),
+      `</ul><h2>${header}</h2><ul>`
+    );
+  }
+
+  // Clean up any empty <ul></ul> pairs that resulted
+  cleaned = cleaned.replace(/<ul>\s*<\/ul>/gi, '');
+
+  // Clean up </ul> at the very start
+  cleaned = cleaned.replace(/^(\s*)<\/ul>/, '$1');
+
+  // Clean up stray </li></ul> after headers
+  cleaned = cleaned.replace(/<\/ul><h2>/gi, '</ul>\n<h2>');
+  cleaned = cleaned.replace(/<h2>([^<]+)<\/h2><ul>([^<]*)<\/li><\/ul>/gi, '<h2>$1</h2><ul>$2</ul>');
+  cleaned = cleaned.replace(/<\/ul><\/li>/gi, '</ul>');
+  cleaned = cleaned.replace(/<\/ul>\s*<\/ul>/gi, '</ul>');
+
+  // Remove orphan </li> tags
+  cleaned = cleaned.replace(/<\/li>(\s*)<h2>/gi, '$1<h2>');
+  cleaned = cleaned.replace(/<\/li>(\s*)<\/ul>(\s*)<h2>/gi, '</ul>$2<h2>');
+
+  return cleaned;
+}
+
+/**
  * Extract text content from DOCX file
  */
 async function extractDocx(filepath) {
   try {
     const result = await mammoth.convertToHtml({ path: filepath });
+    const cleanedHtml = cleanupHtml(result.value);
     return {
-      html: result.value,
-      text: result.value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      html: cleanedHtml,
+      text: cleanedHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
     };
   } catch (error) {
     console.error(`Error reading DOCX ${filepath}:`, error.message);
