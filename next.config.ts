@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
+  // Removed 'export' to enable API routes for chat
   images: {
     unoptimized: true,
   },
